@@ -1,0 +1,279 @@
+---
+title: "Video game market research"
+output: html_document
+date: '2022-09-15'
+---
+# load packages and data
+```{r, echo = TRUE, warning = FALSE , error= FALSE, message=FALSE}
+library(tidyverse)
+library(naniar)
+library(lubridate)
+library(plotly)
+library(colorspace)
+library(gridExtra)
+
+v_games <- read_csv("~/Desktop/Data Analysis/Data visualization/Final project/Video_Games_Sales_as_at_22_Dec_2016.csv")
+```
+
+# visualize missing data
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+# total data missing
+vis_miss(v_games)
+
+missing_vars <- missing_vars_user <- v_games %>%
+  group_by(Genre) %>%
+  miss_var_summary() %>%
+  filter(variable %in% c("Critic_Score", "Critic_Count", "User_Score", "User_Count")) %>%
+  arrange(desc(pct_miss))
+
+ggplot(missing_vars, aes(Genre, pct_miss)) +
+  geom_col()+
+  coord_flip()+
+  facet_grid(variable~.) +
+  labs(title = "These columns will be omitted due to missing data")+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+# EDA - global video game sales
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+genre_sales_by_year <- v_games %>% group_by(Genre, Year_of_Release) %>% summarise(na_sales = sum(NA_Sales), jp_sales = sum(JP_Sales), eu_sales = sum(EU_Sales), other_sales = sum(Other_Sales), global_sales = sum(Global_Sales))
+total.gs <- genre_sales_by_year %>% group_by(Genre) %>% summarise(na_sales = sum(na_sales), jp_sales = sum(jp_sales), eu_sales = sum(eu_sales), other_sales <-  sum(other_sales), global_sales = sum(global_sales))
+
+na.total<- total.gs %>% select(Genre, na_sales)
+jp.total <- total.gs %>% select(Genre,jp_sales) 
+eu.total <- total.gs %>% select(Genre, eu_sales)
+```
+
+### North America
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+na <- ggplot(total.gs, aes(Genre, na_sales))+
+  geom_col()+
+  coord_flip()
+
+ggplotly(na) 
+```
+
+### Europe
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+eu <- ggplot(total.gs, aes(Genre, eu_sales))+
+  geom_col()+
+  coord_flip()
+
+ggplotly(eu)
+```
+
+### Japan
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+jp <- ggplot(total.gs, aes(Genre, jp_sales))+
+  geom_col()+
+  coord_flip()
+
+ggplotly(jp)
+
+```
+
+# Polish data
+
+### North America
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+na.test <- total.gs
+na.test$Genre <- ordered(na.test$Genre, c("Action", "Sports", "Shooter", "Platform", "Misc", "Racing", "Role-Playing", "Fighting", "Simulation", "Puzzle", "Adventure", "Strategy"))
+na.test <- na.test %>% filter(Genre != is.na(Genre))
+
+na.w.var <- na.test
+na.w.var$shooter <- ifelse(na.w.var$Genre == "Shooter", 1,0) 
+na.w.var$shooter <- as.factor(na.w.var$shooter)
+palette <- c("#787878", "#FF0000")
+
+na.ordered <- ggplot(na.w.var, aes(Genre, na_sales, fill = shooter))+
+  geom_col()+
+  coord_flip() +
+  scale_fill_manual(values = palette)+
+  scale_y_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 225))+
+  labs(y = "Total N. American video game sales (in millions)",
+       x = "Game Genre",
+       title = "More shooter games are sold in N. America than anywhere globally.",
+       subtitle = "The N. American consumer buys more shooter games than any other region,\nmaking it the best market for us to enter.")+
+  theme_minimal()+
+  theme(legend.position = "none",
+        plot.title = element_text(family = "serif", size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(family = "serif", size = 10.5, face = "bold.italic", color = "#FF0000", hjust = 0.5),
+        axis.title.x = element_text(family = "serif", size = 11),
+        axis.text = element_text(family = "serif", size = 11),
+        axis.title.y = element_text(family = "serif", size = 11))
+
+
+na.ordered
+
+```
+
+### Europe
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+eu.test <- total.gs
+eu.test$Genre <- ordered(eu.test$Genre, c("Action", "Sports", "Shooter", "Racing", "Misc", "Platform", "Role-Playing", "Simulation", "Fighting", "Adventure", "Puzzle", "Strategy"))
+eu.test <- eu.test %>% filter(Genre != is.na(Genre))
+
+eu.w.var <- eu.test
+eu.w.var$shooter <- ifelse(eu.w.var$Genre == "Shooter", 1,0) 
+eu.w.var$shooter <- as.factor(eu.w.var$shooter)
+palette <- c("#787878", "#FF0000")
+
+eu.ordered <- ggplot(eu.w.var, aes(Genre, eu_sales, fill = shooter))+
+  geom_col()+
+  coord_flip()+
+  scale_fill_manual(values = palette)+
+  scale_y_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 225))+
+  labs(y = "Total European video game sales (in millions)",
+       x = "Game Genre",
+       title = "Shooter games are popular in Europe than Japan, but less than N. America.",
+       subtitle = "N. America sells more shooter games,\nand appears to purchase more total video games than Eurpoe.")+
+  theme_minimal()+
+  theme(legend.position = "none",
+        plot.title = element_text(family = "serif", size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(family = "serif", size = 10.5, face = "bold.italic", color = "#FF0000", hjust = 0.5),
+        axis.title.x = element_text(family = "serif", size = 11),
+        axis.text = element_text(family = "serif", size = 11),
+        axis.title.y = element_text(family = "serif", size = 11))
+
+eu.ordered
+```
+
+### Japan
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+jp.w.var <- total.gs
+jp.w.var <- jp.w.var %>% filter(Genre != is.na(Genre))
+jp.w.var$Genre <- as.factor(jp.w.var$Genre)
+jp.w.var$Genre <- ordered(jp.w.var$Genre, c("Role-Playing", "Action", "Sports", "Platform", "Misc", "Fighting", "Simulation", "Puzzle", "Racing", "Adventure", "Strategy", "Shooter"))
+jp.w.var$shooter <- ifelse(jp.w.var$Genre == "Shooter", 1,0)
+jp.w.var$shooter <- as.factor(jp.w.var$shooter)
+
+jp.ordered <- ggplot(jp.w.var, aes(x= Genre, y = jp_sales, fill = shooter))+
+  geom_col()+
+  coord_flip()+
+  scale_fill_manual(values = palette)+
+  scale_y_continuous(limits = c(0, 900), breaks = seq(0, 900, by = 225))+
+  labs(y = "Total Japanese video game sales (in millions)",
+       x = "Game Genre",
+       title = "Shooter games are the least popular game genre in Japan.",
+       subtitle = "Look to other markets that have higher shooter genre sales.")+
+  theme_minimal()+
+  theme(legend.position = "none",
+        plot.title = element_text(family = "serif", size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(family = "serif", size = 10.5, face = "bold.italic", color = "#FF0000", hjust = 0.5),
+        axis.title.x = element_text(family = "serif", size = 11, hjust = 0.5),
+        axis.text = element_text(family = "serif", size = 11),
+        axis.title.y = element_text(family = "serif", size = 11))
+
+jp.ordered
+```
+
+# EDA - Developers
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+devSales <- v_games %>%
+  select(Developer, Genre, NA_Sales) %>%
+  filter(!is.na(Developer)) %>%
+  filter(Genre == "Shooter") %>%
+  group_by(Developer) %>%
+  summarise(sales = sum(NA_Sales),
+            n = n()) %>%
+  top_n(10,sales) %>%
+  arrange(desc(sales))
+
+
+devSales$over20 <- ifelse(devSales$sales > 20, 1,0)
+
+devSales$over20 <- as.factor(devSales$over20)
+
+palette <- c("#787878","#FF0000")
+
+
+d <- devSales %>% ggplot(., aes(x = reorder(Developer, -sales),
+                                y = sales,
+                                size = n,
+                                color = over20)) +
+  scale_color_manual(values = palette,
+                     guide = F) +
+  geom_point() +
+  coord_flip() +
+  xlab("Developers") +
+  ylab("Sales") +
+  labs(title = "Developers Treyarch, Infinity Ward & EA Dice Sell the Most Shooters",
+       subtitle = "Biggest Competitors in the North American Market",
+       x = "Developers",
+       y = "Sales",
+       size = "Games Sold") +
+  scale_y_continuous(limit = c(0,50),
+                     breaks = seq(0,50, by = 10)) +
+  theme_minimal() +
+  ylim(0,50) +
+  theme(plot.title = element_text(family = "serif", size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(family = "serif", size = 10.5, color = "#FF0000", face = "italic", vjust = 0, hjust = 0.5),
+        axis.title.x = element_text(family = "serif", size = 10, color = "black"),
+        axis.text = element_text(family = "serif", size = 8, color = "black"),
+        axis.title.y = element_text(family = "serif", size = 10, color = "black"),
+        legend.text = element_text(family = "serif", size = 9),
+        legend.title = element_text(family = "serif", size = 10))
+
+
+d
+```
+
+# EDA - Publishers
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+pubSales <- v_games %>%
+  select(Publisher, Genre, NA_Sales) %>%
+  filter(Publisher != "Unknown") %>%
+  filter(Genre == "Shooter") %>%
+  group_by(Publisher) %>%
+  summarise(n = n(),
+            avg_sales = (sum(NA_Sales)/n)*1000000) %>%
+  filter(n > 50)
+
+
+
+pubSales$over100 <- ifelse(pubSales$n > 100, 1,0)
+
+pubSales$over100 <- as.factor(pubSales$over100)
+
+
+e <- pubSales %>%
+  ggplot(., aes(x = reorder(Publisher, n),
+                y = n,
+                color = over100,
+                size = avg_sales)) +
+  scale_color_manual(values = palette,
+                     guide = F) +
+  scale_size_continuous(name = "Avg. Total Sale Per Title",
+                        labels = c("400k", "600k", "800k", "1m")) +
+  geom_point() +
+  coord_flip() +
+  xlab("Publishers") +
+  ylab("Number of Video Games Published") +
+  labs(title = "Activision & EA are Likely the Best Publishing Options",
+       subtitle = "Comparing all the Publishers that have over 50 games") +
+  ylim(0,175) +
+  scale_y_continuous(limit = c(0,175),
+                     breaks = seq(0,175, by = 50)) +
+  theme_minimal() +
+  theme(plot.title = element_text(family = "serif", size = 12, face = "bold", hjust = 0.5),
+        plot.subtitle = element_text(family = "serif", size = 10.5, face = "italic", vjust = 0, hjust = 0.5),
+        axis.title.x = element_text(family = "serif", size = 10, color = "black"),
+        axis.text = element_text(family = "serif", size = 8, color = "black"),
+        axis.title.y = element_text(family = "serif", size = 10, color = "black"),
+        legend.text = element_text(family = "serif", size = 9),
+        legend.title = element_text(family = "serif", size = 10))
+
+e
+```
+
+# Create Ensemble
+```{r, echo = FALSE, warning = FALSE , error= FALSE, message=FALSE}
+grid.arrange(arrangeGrob(jp.ordered, nrow =1),
+             arrangeGrob(d, nrow =1),
+             arrangeGrob(eu.ordered, nrow =1),
+             arrangeGrob(e,nrow =1),
+             arrangeGrob(na.ordered, nrow=1))
+```
+
+
+
