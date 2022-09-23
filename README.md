@@ -7,5 +7,6 @@ The global video game market is estimated at [$138 B](https://www.statista.com/s
 
 To accomplish this I will utilize video game data in the following way:
 
-* Compile summary statistics by region into a dashboard to highlight attractive global markets, biggest competitors, and best publishing options to collaborate with
-This dashboard could be used as a preliminary determination for marketing funds distribution & product differentiaion
+* Compile summary statistics by region into a dashboard to highlight attractive global markets, biggest competitors, and best publishing options to collaborate with.
+
+This dashboard could be used as a preliminary determination for **marketing funds allocation** & **product differentiaion**.
